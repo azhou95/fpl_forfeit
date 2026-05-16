@@ -472,8 +472,67 @@ function twoOpt(r) {
   return r;
 }
 
+// Or-opt: try relocating segments of 1, 2, or 3 stations to a better position.
+// Catches improvements 2-opt misses by moving rather than reversing.
+// Angel (index 0) and Old Street (index n-1) stay pinned throughout.
+function orOpt(r) {
+  const n = r.length;
+  let improved = true;
+  while (improved) {
+    improved = false;
+    for (let segLen = 1; segLen <= 3; segLen++) {
+      for (let i = 1; i <= n - 1 - segLen; i++) {
+        const prev     = r[i - 1];
+        const segStart = r[i];
+        const segEnd   = r[i + segLen - 1];
+        const next     = r[i + segLen];
+        if (!next) continue;
+
+        const removeSaving = haversine(prev, segStart)
+                           + haversine(segEnd, next)
+                           - haversine(prev, next);
+
+        for (let j = 1; j <= n - 2; j++) {
+          if (j >= i - 1 && j <= i + segLen - 1) continue;
+          const jNode = r[j];
+          const jNext = r[j + 1];
+          if (!jNext) continue;
+
+          const insertCost = haversine(jNode, segStart)
+                           + haversine(segEnd, jNext)
+                           - haversine(jNode, jNext);
+
+          if (insertCost < removeSaving - 0.01) {
+            const seg = r.splice(i, segLen);
+            const insertAfter = j > i ? j - segLen : j;
+            r.splice(insertAfter + 1, 0, ...seg);
+            improved = true;
+            break;
+          }
+        }
+        if (improved) break;
+      }
+      if (improved) break;
+    }
+  }
+  return r;
+}
+
+function totalRouteDist(r) {
+  let d = 0;
+  for (let i = 1; i < r.length; i++) d += haversine(r[i-1], r[i]);
+  return d;
+}
+
 function buildRoute(list) {
-  return twoOpt(nearestNeighbour(list));
+  const r = nearestNeighbour(list);
+  const d0 = totalRouteDist(r);
+  twoOpt(r);
+  const d1 = totalRouteDist(r);
+  orOpt(r);
+  const d2 = totalRouteDist(r);
+  console.log(`NN: ${(d0/1000).toFixed(2)}km  2-opt: ${(d1/1000).toFixed(2)}km  or-opt: ${(d2/1000).toFixed(2)}km  (saved ${((d0-d2)/1000).toFixed(2)}km)`);
+  return r;
 }
 
 
