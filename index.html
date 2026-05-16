@@ -251,6 +251,13 @@
     min-width: 38px;
     text-align: right;
   }
+  .st-cum {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 44px;
+    text-align: right;
+  }
   .st-time {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
@@ -354,7 +361,7 @@
     <div class="list-header">
       <span>Station</span>
       <div style="display:flex;gap:16px;">
-        <span>Leg</span><span>Arrive</span>
+        <span>Leg</span><span>Total</span><span>Arrive</span>
       </div>
     </div>
     <div id="station-list"></div>
@@ -818,7 +825,7 @@ function fmtTime(totalMinutes) {
 function buildList(rt, pace, stopSec) {
   const legs = rt.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : d(rt[i-1], s));
   const startMin = parseStartMinutes();
-  let cumTime = 0;
+  let cumTime = 0, cumDist = 0;
   const frag = document.createDocumentFragment();
 
   rt.forEach((st, i) => {
@@ -830,6 +837,7 @@ function buildList(rt, pace, stopSec) {
     const isStart = st.name === 'Angel';
     const isEnd = st.name === 'Old Street';
 
+    cumDist += legDist;
     const div = document.createElement('div');
     div.className = 'station-item' + (i === activeIdx ? ' active' : '');
     div.innerHTML = `
@@ -839,6 +847,7 @@ function buildList(rt, pace, stopSec) {
       ${TYPE_LABEL[st.type] ? `<span class="st-badge badge-${st.type}">${TYPE_LABEL[st.type]}</span>` : ''}
       ${isStart ? '<span class="st-flag">🏁</span>' : isEnd ? '<span class="st-flag">🎯</span>' : ''}
       <span class="st-dist">${i===0 ? '—' : COLOC.has(st.name) ? '~0m' : Math.round(legDist)+'m'}</span>
+      <span class="st-cum">${(cumDist/1000).toFixed(2)}km</span>
       <span class="st-time">${fmtTime(arrivalMin)}</span>
     `;
     div.addEventListener('click', () => highlightStation(i));
