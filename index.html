@@ -377,74 +377,74 @@
 <div id="tooltip"><div class="tt-name" id="tt-name"></div><div class="tt-meta" id="tt-meta"></div></div>
 
 <script>
-const ALL_STATIONS = [
-  {name:"Angel", lat:51.5322, lng:-0.1058, type:"lu"},
+const ROUTE = [
+  {name:'Angel', lat:51.5322, lng:-0.1058, type:"lu"},
   {name:"King's Cross St Pancras", lat:51.5308, lng:-0.1238, type:"lu"},
-  {name:"Euston", lat:51.5282, lng:-0.1337, type:"lu"},
-  {name:"Warren Street", lat:51.5245, lng:-0.1380, type:"lu"},
-  {name:"Goodge Street", lat:51.5198, lng:-0.1347, type:"lu"},
-  {name:"Tottenham Court Road", lat:51.5165, lng:-0.1308, type:"lu"},
-  {name:"Oxford Circus", lat:51.5154, lng:-0.1415, type:"lu"},
-  {name:"Bond Street", lat:51.5142, lng:-0.1494, type:"lu"},
-  {name:"Marble Arch", lat:51.5133, lng:-0.1587, type:"lu"},
-  {name:"Lancaster Gate", lat:51.5112, lng:-0.1757, type:"lu"},
-  {name:"Queensway", lat:51.5104, lng:-0.1872, type:"lu"},
-  {name:"Bayswater", lat:51.5121, lng:-0.1879, type:"lu"},
-  {name:"Notting Hill Gate", lat:51.5094, lng:-0.1967, type:"lu"},
-  {name:"High Street Kensington", lat:51.5011, lng:-0.1920, type:"lu"},
-  {name:"Gloucester Road", lat:51.4944, lng:-0.1829, type:"lu"},
-  {name:"South Kensington", lat:51.4941, lng:-0.1738, type:"lu"},
-  {name:"Knightsbridge", lat:51.5013, lng:-0.1607, type:"lu"},
-  {name:"Hyde Park Corner", lat:51.5027, lng:-0.1527, type:"lu"},
-  {name:"Green Park", lat:51.5067, lng:-0.1428, type:"lu"},
-  {name:"Victoria", lat:51.4965, lng:-0.1447, type:"lu"},
-  {name:"Sloane Square", lat:51.4924, lng:-0.1565, type:"lu"},
-  {name:"Earl's Court", lat:51.4913, lng:-0.1937, type:"lu"},
-  {name:"Pimlico", lat:51.4893, lng:-0.1334, type:"lu"},
-  {name:"Nine Elms", lat:51.4835, lng:-0.1270, type:"lu"},
-  {name:"Battersea Power Station", lat:51.4815, lng:-0.1445, type:"lu"},
-  {name:"Vauxhall", lat:51.4861, lng:-0.1234, type:"lu"},
-  {name:"Lambeth North", lat:51.4986, lng:-0.1116, type:"lu"},
-  {name:"Westminster", lat:51.5010, lng:-0.1247, type:"lu"},
-  {name:"St James's Park", lat:51.4994, lng:-0.1335, type:"lu"},
-  {name:"Charing Cross", lat:51.5081, lng:-0.1247, type:"lu"},
-  {name:"Embankment", lat:51.5073, lng:-0.1221, type:"lu"},
-  {name:"Temple", lat:51.5113, lng:-0.1141, type:"lu"},
-  {name:"Blackfriars", lat:51.5118, lng:-0.1040, type:"lu"},
-  {name:"Cannon Street", lat:51.5114, lng:-0.0903, type:"lu"},
-  {name:"Mansion House", lat:51.5122, lng:-0.0941, type:"lu"},
-  {name:"Monument", lat:51.5104, lng:-0.0863, type:"lu"},
-  {name:"Bank", lat:51.5133, lng:-0.0886, type:"lu"},
-  {name:"London Bridge", lat:51.5053, lng:-0.0865, type:"lu"},
-  {name:"Borough", lat:51.5005, lng:-0.0940, type:"lu"},
-  {name:"Elephant & Castle", lat:51.4943, lng:-0.1003, type:"lu"},
-  {name:"Kennington", lat:51.4884, lng:-0.1053, type:"lu"},
-  {name:"Southwark", lat:51.5043, lng:-0.1052, type:"lu"},
-  {name:"Waterloo", lat:51.5031, lng:-0.1132, type:"lu"},
-  {name:"Leicester Square", lat:51.5113, lng:-0.1281, type:"lu"},
-  {name:"Covent Garden", lat:51.5129, lng:-0.1243, type:"lu"},
-  {name:"Holborn", lat:51.5174, lng:-0.1200, type:"lu"},
-  {name:"Chancery Lane", lat:51.5152, lng:-0.1115, type:"lu"},
-  {name:"St Paul's", lat:51.5146, lng:-0.0973, type:"lu"},
-  {name:"Moorgate", lat:51.5186, lng:-0.0886, type:"lu"},
-  {name:"Liverpool Street", lat:51.5178, lng:-0.0823, type:"lu"},
-  {name:"Aldgate", lat:51.5141, lng:-0.0755, type:"lu"},
-  {name:"Aldgate East", lat:51.5153, lng:-0.0726, type:"lu"},
-  {name:"Tower Hill", lat:51.5098, lng:-0.0766, type:"lu"},
-  {name:"Tower Gateway", lat:51.5103, lng:-0.0751, type:"dlr"},
-  {name:"Barbican", lat:51.5204, lng:-0.0979, type:"lu"},
-  {name:"Farringdon", lat:51.5203, lng:-0.1046, type:"lu"},
-  {name:"Euston Square", lat:51.5260, lng:-0.1364, type:"lu"},
-  {name:"Great Portland Street", lat:51.5237, lng:-0.1438, type:"lu"},
-  {name:"Baker Street", lat:51.5226, lng:-0.1571, type:"lu"},
-  {name:"Edgware Road", lat:51.5202, lng:-0.1690, type:"lu"},
-  {name:"Paddington", lat:51.5154, lng:-0.1755, type:"lu"},
-  {name:"Russell Square", lat:51.5231, lng:-0.1240, type:"lu"},
-  {name:"Piccadilly Circus", lat:51.5101, lng:-0.1340, type:"lu"},
+  {name:'Euston', lat:51.5282, lng:-0.1337, type:"lu"},
+  {name:'Euston Square', lat:51.526, lng:-0.1364, type:"lu"},
+  {name:'Warren Street', lat:51.5245, lng:-0.138, type:"lu"},
+  {name:'Great Portland Street', lat:51.5237, lng:-0.1438, type:"lu"},
   {name:"Regent's Park", lat:51.5237, lng:-0.1466, type:"lu"},
-  {name:"Shoreditch High Street", lat:51.5227, lng:-0.0756, type:"over"},
-  {name:"Hoxton", lat:51.5312, lng:-0.0765, type:"over"},
-  {name:"Old Street", lat:51.5256, lng:-0.0878, type:"lu"},
+  {name:'Baker Street', lat:51.5226, lng:-0.1571, type:"lu"},
+  {name:'Edgware Road', lat:51.5202, lng:-0.169, type:"lu"},
+  {name:'Paddington', lat:51.5154, lng:-0.1755, type:"lu"},
+  {name:'Lancaster Gate', lat:51.5112, lng:-0.1757, type:"lu"},
+  {name:'Queensway', lat:51.5104, lng:-0.1872, type:"lu"},
+  {name:'Bayswater', lat:51.5121, lng:-0.1879, type:"lu"},
+  {name:'Notting Hill Gate', lat:51.5094, lng:-0.1967, type:"lu"},
+  {name:'High Street Kensington', lat:51.5011, lng:-0.192, type:"lu"},
+  {name:"Earl's Court", lat:51.4913, lng:-0.1937, type:"lu"},
+  {name:'Gloucester Road', lat:51.4944, lng:-0.1829, type:"lu"},
+  {name:'South Kensington', lat:51.4941, lng:-0.1738, type:"lu"},
+  {name:'Sloane Square', lat:51.4924, lng:-0.1565, type:"lu"},
+  {name:'Battersea Power Station', lat:51.4815, lng:-0.1445, type:"lu"},
+  {name:'Nine Elms', lat:51.4835, lng:-0.127, type:"lu"},
+  {name:'Vauxhall', lat:51.4861, lng:-0.1234, type:"lu"},
+  {name:'Kennington', lat:51.4884, lng:-0.1053, type:"lu"},
+  {name:'Elephant & Castle', lat:51.4943, lng:-0.1003, type:"lu"},
+  {name:'Borough', lat:51.5005, lng:-0.094, type:"lu"},
+  {name:'London Bridge', lat:51.5053, lng:-0.0865, type:"lu"},
+  {name:'Monument', lat:51.5104, lng:-0.0863, type:"lu"},
+  {name:'Bank', lat:51.5133, lng:-0.0886, type:"lu"},
+  {name:'Cannon Street', lat:51.5114, lng:-0.0903, type:"lu"},
+  {name:'Mansion House', lat:51.5122, lng:-0.0941, type:"lu"},
+  {name:"St Paul's", lat:51.5146, lng:-0.0973, type:"lu"},
+  {name:'Blackfriars', lat:51.5118, lng:-0.104, type:"lu"},
+  {name:'Southwark', lat:51.5043, lng:-0.1052, type:"lu"},
+  {name:'Waterloo', lat:51.5031, lng:-0.1132, type:"lu"},
+  {name:'Lambeth North', lat:51.4986, lng:-0.1116, type:"lu"},
+  {name:'Westminster', lat:51.501, lng:-0.1247, type:"lu"},
+  {name:"St James's Park", lat:51.4994, lng:-0.1335, type:"lu"},
+  {name:'Pimlico', lat:51.4893, lng:-0.1334, type:"lu"},
+  {name:'Victoria', lat:51.4965, lng:-0.1447, type:"lu"},
+  {name:'Hyde Park Corner', lat:51.5027, lng:-0.1527, type:"lu"},
+  {name:'Knightsbridge', lat:51.5013, lng:-0.1607, type:"lu"},
+  {name:'Marble Arch', lat:51.5133, lng:-0.1587, type:"lu"},
+  {name:'Bond Street', lat:51.5142, lng:-0.1494, type:"lu"},
+  {name:'Oxford Circus', lat:51.5154, lng:-0.1415, type:"lu"},
+  {name:'Green Park', lat:51.5067, lng:-0.1428, type:"lu"},
+  {name:'Piccadilly Circus', lat:51.5101, lng:-0.134, type:"lu"},
+  {name:'Tottenham Court Road', lat:51.5165, lng:-0.1308, type:"lu"},
+  {name:'Goodge Street', lat:51.5198, lng:-0.1347, type:"lu"},
+  {name:'Russell Square', lat:51.5231, lng:-0.124, type:"lu"},
+  {name:'Holborn', lat:51.5174, lng:-0.12, type:"lu"},
+  {name:'Covent Garden', lat:51.5129, lng:-0.1243, type:"lu"},
+  {name:'Leicester Square', lat:51.5113, lng:-0.1281, type:"lu"},
+  {name:'Charing Cross', lat:51.5081, lng:-0.1247, type:"lu"},
+  {name:'Embankment', lat:51.5073, lng:-0.1221, type:"lu"},
+  {name:'Temple', lat:51.5113, lng:-0.1141, type:"lu"},
+  {name:'Chancery Lane', lat:51.5152, lng:-0.1115, type:"lu"},
+  {name:'Farringdon', lat:51.5203, lng:-0.1046, type:"lu"},
+  {name:'Barbican', lat:51.5204, lng:-0.0979, type:"lu"},
+  {name:'Moorgate', lat:51.5186, lng:-0.0886, type:"lu"},
+  {name:'Liverpool Street', lat:51.5178, lng:-0.0823, type:"lu"},
+  {name:'Tower Hill', lat:51.5098, lng:-0.0766, type:"lu"},
+  {name:'Tower Gateway', lat:51.5103, lng:-0.0751, type:"dlr"},
+  {name:'Aldgate', lat:51.5141, lng:-0.0755, type:"lu"},
+  {name:'Aldgate East', lat:51.5153, lng:-0.0726, type:"lu"},
+  {name:'Shoreditch High Street', lat:51.5227, lng:-0.0756, type:"over"},
+  {name:'Hoxton', lat:51.5312, lng:-0.0765, type:"over"},
+  {name:'Old Street', lat:51.5256, lng:-0.0878, type:"lu"},
 ];
 
 const COLOC = new Set();
@@ -530,185 +530,6 @@ function d(a, b) {
   }
   return best;
 }
-
-
-
-function totalRouteDist(r) {
-  let t = 0;
-  for (let i = 1; i < r.length; i++) t += d(r[i-1], r[i]);
-  return t;
-}
-
-function nearestNeighbour(list) {
-  const start = list.find(s => s.name === "Angel");
-  const end   = list.find(s => s.name === "Old Street");
-  const middle = list.filter(s => s.name !== "Angel" && s.name !== "Old Street");
-  let r = [start], rem = [...middle], cur = start;
-  while (rem.length) {
-    let best = null, bd = Infinity;
-    for (const s of rem) { const dd = d(cur, s); if (dd < bd) { bd = dd; best = s; } }
-    r.push(best); rem.splice(rem.indexOf(best), 1); cur = best;
-  }
-  r.push(end);
-  return r;
-}
-
-// 2-opt: reverse interior segments to remove crossings.
-// Indices 0 and n-1 (Angel / Old Street) are never moved.
-function twoOpt(r) {
-  const n = r.length;
-  let improved = true;
-  while (improved) {
-    improved = false;
-    for (let i = 1; i <= n - 3; i++) {
-      for (let k = i + 1; k <= n - 2; k++) {
-        const before = d(r[i-1], r[i])  + d(r[k],   r[k+1]);
-        const after  = d(r[i-1], r[k])  + d(r[i],   r[k+1]);
-        if (after < before - 0.01) {
-          let lo = i, hi = k;
-          while (lo < hi) { [r[lo], r[hi]] = [r[hi], r[lo]]; lo++; hi--; }
-          improved = true;
-        }
-      }
-    }
-  }
-  return r;
-}
-
-// Or-opt: relocate segments of length 1–3 to a cheaper position.
-// Angel (index 0) and Old Street (index n-1) stay pinned.
-function orOpt(r) {
-  const n = r.length;
-  let improved = true;
-  while (improved) {
-    improved = false;
-    for (let segLen = 1; segLen <= 3; segLen++) {
-      for (let i = 1; i <= n - 1 - segLen; i++) {
-        const prev = r[i-1], segStart = r[i], segEnd = r[i+segLen-1], next = r[i+segLen];
-        if (!next) continue;
-        const removeSaving = d(prev, segStart) + d(segEnd, next) - d(prev, next);
-        for (let j = 1; j <= n - 2; j++) {
-          if (j >= i - 1 && j <= i + segLen - 1) continue;
-          const jNode = r[j], jNext = r[j+1];
-          if (!jNext) continue;
-          const insertCost = d(jNode, segStart) + d(segEnd, jNext) - d(jNode, jNext);
-          if (insertCost < removeSaving - 0.01) {
-            const seg = r.splice(i, segLen);
-            r.splice((j > i ? j - segLen : j) + 1, 0, ...seg);
-            improved = true;
-            break;
-          }
-        }
-        if (improved) break;
-      }
-      if (improved) break;
-    }
-  }
-  return r;
-}
-
-// 3-opt: consider all triples of edges and apply the best of the 8 possible
-// reconnections (including both 2-opt moves and the two true 3-opt moves).
-// Only operates on interior nodes — endpoints stay pinned.
-function threeOpt(r) {
-  const n = r.length;
-  let improved = true;
-  while (improved) {
-    improved = false;
-    outer:
-    for (let i = 1; i <= n - 5; i++) {
-      for (let j = i + 1; j <= n - 4; j++) {
-        for (let k = j + 1; k <= n - 3; k++) {
-          // Edges being considered: (i-1→i), (j→j+1), (k→k+1)
-          // Segments: A=r[0..i-1], B=r[i..j], C=r[j+1..k], D=r[k+1..n-1]
-          const a=r[i-1], b=r[i], c=r[j], e=r[j+1], f=r[k], g=r[k+1];
-          const d0 = d(a,b) + d(c,e) + d(f,g); // current cost
-
-          // All 7 non-trivial reconnections:
-          const cases = [
-            // 2-opt moves (one segment reversed)
-            { cost: d(a,c)+d(b,e)+d(f,g), fn: () => { reverse(r,i,j); } },
-            { cost: d(a,b)+d(c,f)+d(e,g), fn: () => { reverse(r,j+1,k); } },
-            { cost: d(a,f)+d(c,e)+d(b,g), fn: () => { reverse(r,i,k); } },
-            // True 3-opt reconnections (both inner segments moved/reversed)
-            { cost: d(a,e)+d(f,b)+d(c,g), fn: () => { // B reversed, C reversed, swapped
-                const B = r.slice(i, j+1).reverse();
-                const C = r.slice(j+1, k+1).reverse();
-                r.splice(i, k-i+1, ...C, ...B);
-              }
-            },
-            { cost: d(a,e)+d(f,c)+d(b,g), fn: () => { // C then B (segments swapped)
-                const B = r.slice(i, j+1);
-                const C = r.slice(j+1, k+1);
-                r.splice(i, k-i+1, ...C, ...B);
-              }
-            },
-            { cost: d(a,c)+d(b,f)+d(e,g), fn: () => { // B reversed, then C
-                const B = r.slice(i, j+1).reverse();
-                const C = r.slice(j+1, k+1);
-                r.splice(i, k-i+1, ...B, ...C);
-              }
-            },
-            { cost: d(a,f)+d(e,b)+d(c,g), fn: () => { // C reversed, then B
-                const B = r.slice(i, j+1);
-                const C = r.slice(j+1, k+1).reverse();
-                r.splice(i, k-i+1, ...C, ...B);
-              }
-            },
-          ];
-
-          // Pick the best improving move
-          let best = null, bestCost = d0;
-          for (const c of cases) {
-            if (c.cost < bestCost - 0.01) { bestCost = c.cost; best = c; }
-          }
-          if (best) {
-            best.fn();
-            improved = true;
-            break outer;
-          }
-        }
-      }
-    }
-  }
-  return r;
-}
-
-function reverse(r, lo, hi) {
-  while (lo < hi) { [r[lo], r[hi]] = [r[hi], r[lo]]; lo++; hi--; }
-}
-
-function nnFromSeed(list, seed) {
-  const start = list.find(s => s.name === "Angel");
-  const end   = list.find(s => s.name === "Old Street");
-  const middle = list.filter(s => s.name !== "Angel" && s.name !== "Old Street");
-  let s = seed;
-  const rng = () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
-  const shuffled = [...middle].sort(() => rng() - 0.5);
-  let r = [start], rem = [...shuffled], cur = start;
-  while (rem.length) {
-    let best = null, bd = Infinity;
-    for (const st of rem) { const dd = d(cur, st); if (dd < bd) { bd = dd; best = st; } }
-    r.push(best); rem.splice(rem.indexOf(best), 1); cur = best;
-  }
-  r.push(end);
-  return r;
-}
-
-function optimise(r) { twoOpt(r); orOpt(r); twoOpt(r); orOpt(r); return r; }
-
-function buildRoute(list) {
-  let bestDist = Infinity, bestRoute = null;
-  const SEEDS = 500;
-  for (let s = 0; s < SEEDS; s++) {
-    const r = optimise(nnFromSeed(list, s));
-    const dist = totalRouteDist(r);
-    if (dist < bestDist) { bestDist = dist; bestRoute = [...r]; }
-  }
-  console.log(`Best across ${SEEDS} seeds: ${(bestDist/1000).toFixed(3)}km`);
-  return bestRoute;
-}
-
 
 // Map projection helpers
 const LAT_MIN = 51.475, LAT_MAX = 51.538, LNG_MIN = -0.205, LNG_MAX = -0.065;
@@ -872,8 +693,7 @@ function render() {
     `${Math.floor(pace)}:${String(Math.round((pace%1)*60)).padStart(2,'0')}/km`;
   document.getElementById('stop-out').textContent = stopSec + 's';
 
-  const list = ALL_STATIONS.slice();
-  route = buildRoute(list);
+  route = ROUTE;
   const legs = route.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : d(route[i-1], s));
   const totalDist = legs.reduce((a,b) => a+b, 0);
   const runMin = (totalDist/1000) * pace;
@@ -947,10 +767,7 @@ document.getElementById('pace').addEventListener('input', render);
 document.getElementById('stop').addEventListener('input', render);
 document.getElementById('start-time').addEventListener('input', () => buildList(route, parseFloat(document.getElementById('pace').value), parseInt(document.getElementById('stop').value)));
 
-// Show loading state then compute on next frame so the page renders first
-document.getElementById('station-list').innerHTML =
-  `<div style="padding:2rem 1.5rem;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Optimising route across 500 seeds…</div>`;
-setTimeout(render, 50);
+render();
 </script>
 </body>
 </html>
