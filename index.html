@@ -251,6 +251,14 @@
     min-width: 38px;
     text-align: right;
   }
+  .st-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    min-width: 46px;
+    text-align: right;
+  }
   .st-flag {
     font-size: 10px;
     min-width: 14px;
@@ -290,7 +298,9 @@
     .main { grid-template-columns: 1fr; }
     .map-panel { position: static; height: 60vw; min-height: 280px; border-right: none; border-bottom: 1px solid var(--border); }
     .list-panel { position: static; height: auto; max-height: 60vh; }
-    .stats-row { display: none; }
+    .controls-inner { flex-direction: column; align-items: flex-start; gap: 0.85rem; }
+    .stats-row { margin-left: 0; width: 100%; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    .stat-pill { align-items: flex-start; }
   }
 </style>
 </head>
@@ -313,6 +323,10 @@
       <label>Stop/station</label>
       <input type="range" id="stop" min="0" max="120" step="10" value="30">
       <span class="ctrl-val" id="stop-out">30s</span>
+    </div>
+    <div class="ctrl">
+      <label>Start time</label>
+      <input type="time" id="start-time" value="08:00" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:3px 7px;border-radius:4px;outline:none;cursor:pointer;">
     </div>
     <div class="stats-row">
       <div class="stat-pill">
@@ -338,7 +352,10 @@
 
   <div class="list-panel">
     <div class="list-header">
-      <span>Station</span><span>Leg dist</span>
+      <span>Station</span>
+      <div style="display:flex;gap:16px;">
+        <span>Leg</span><span>Arrive</span>
+      </div>
     </div>
     <div id="station-list"></div>
     <div class="legend">
@@ -429,11 +446,21 @@ const TYPE_LABEL = {lu:'', over:'Overground', dlr:'DLR', nr:'NR'};
 
 let route = [];
 
+// d() is the single distance function used everywhere — haversine × 1.25 street factor.
+// Using it consistently means the optimisers minimise the same metric shown in the UI.
 function haversine(a, b) {
   const R = 6371000, d2r = Math.PI/180;
   const dLat = (b.lat - a.lat)*d2r, dLng = (b.lng - a.lng)*d2r;
   const aa = Math.sin(dLat/2)**2 + Math.cos(a.lat*d2r)*Math.cos(b.lat*d2r)*Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+}
+const STREET_FACTOR = 1.25;
+function d(a, b) { return haversine(a, b) * STREET_FACTOR; }
+
+function totalRouteDist(r) {
+  let t = 0;
+  for (let i = 1; i < r.length; i++) t += d(r[i-1], r[i]);
+  return t;
 }
 
 function nearestNeighbour(list) {
@@ -443,15 +470,15 @@ function nearestNeighbour(list) {
   let r = [start], rem = [...middle], cur = start;
   while (rem.length) {
     let best = null, bd = Infinity;
-    for (const s of rem) { const d = haversine(cur, s); if (d < bd) { bd = d; best = s; } }
+    for (const s of rem) { const dd = d(cur, s); if (dd < bd) { bd = dd; best = s; } }
     r.push(best); rem.splice(rem.indexOf(best), 1); cur = best;
   }
   r.push(end);
   return r;
 }
 
-// 2-opt: repeatedly reverse interior segments while doing so reduces total distance.
-// Angel (index 0) and Old Street (index n-1) are never moved.
+// 2-opt: reverse interior segments to remove crossings.
+// Indices 0 and n-1 (Angel / Old Street) are never moved.
 function twoOpt(r) {
   const n = r.length;
   let improved = true;
@@ -459,8 +486,8 @@ function twoOpt(r) {
     improved = false;
     for (let i = 1; i <= n - 3; i++) {
       for (let k = i + 1; k <= n - 2; k++) {
-        const before = haversine(r[i-1], r[i])  + haversine(r[k],   r[k+1]);
-        const after  = haversine(r[i-1], r[k])  + haversine(r[i],   r[k+1]);
+        const before = d(r[i-1], r[i])  + d(r[k],   r[k+1]);
+        const after  = d(r[i-1], r[k])  + d(r[i],   r[k+1]);
         if (after < before - 0.01) {
           let lo = i, hi = k;
           while (lo < hi) { [r[lo], r[hi]] = [r[hi], r[lo]]; lo++; hi--; }
@@ -472,9 +499,8 @@ function twoOpt(r) {
   return r;
 }
 
-// Or-opt: try relocating segments of 1, 2, or 3 stations to a better position.
-// Catches improvements 2-opt misses by moving rather than reversing.
-// Angel (index 0) and Old Street (index n-1) stay pinned throughout.
+// Or-opt: relocate segments of length 1–3 to a cheaper position.
+// Angel (index 0) and Old Street (index n-1) stay pinned.
 function orOpt(r) {
   const n = r.length;
   let improved = true;
@@ -482,30 +508,17 @@ function orOpt(r) {
     improved = false;
     for (let segLen = 1; segLen <= 3; segLen++) {
       for (let i = 1; i <= n - 1 - segLen; i++) {
-        const prev     = r[i - 1];
-        const segStart = r[i];
-        const segEnd   = r[i + segLen - 1];
-        const next     = r[i + segLen];
+        const prev = r[i-1], segStart = r[i], segEnd = r[i+segLen-1], next = r[i+segLen];
         if (!next) continue;
-
-        const removeSaving = haversine(prev, segStart)
-                           + haversine(segEnd, next)
-                           - haversine(prev, next);
-
+        const removeSaving = d(prev, segStart) + d(segEnd, next) - d(prev, next);
         for (let j = 1; j <= n - 2; j++) {
           if (j >= i - 1 && j <= i + segLen - 1) continue;
-          const jNode = r[j];
-          const jNext = r[j + 1];
+          const jNode = r[j], jNext = r[j+1];
           if (!jNext) continue;
-
-          const insertCost = haversine(jNode, segStart)
-                           + haversine(segEnd, jNext)
-                           - haversine(jNode, jNext);
-
+          const insertCost = d(jNode, segStart) + d(segEnd, jNext) - d(jNode, jNext);
           if (insertCost < removeSaving - 0.01) {
             const seg = r.splice(i, segLen);
-            const insertAfter = j > i ? j - segLen : j;
-            r.splice(insertAfter + 1, 0, ...seg);
+            r.splice((j > i ? j - segLen : j) + 1, 0, ...seg);
             improved = true;
             break;
           }
@@ -518,20 +531,93 @@ function orOpt(r) {
   return r;
 }
 
-function totalRouteDist(r) {
-  let d = 0;
-  for (let i = 1; i < r.length; i++) d += haversine(r[i-1], r[i]);
-  return d;
+// 3-opt: consider all triples of edges and apply the best of the 8 possible
+// reconnections (including both 2-opt moves and the two true 3-opt moves).
+// Only operates on interior nodes — endpoints stay pinned.
+function threeOpt(r) {
+  const n = r.length;
+  let improved = true;
+  while (improved) {
+    improved = false;
+    outer:
+    for (let i = 1; i <= n - 5; i++) {
+      for (let j = i + 1; j <= n - 4; j++) {
+        for (let k = j + 1; k <= n - 3; k++) {
+          // Edges being considered: (i-1→i), (j→j+1), (k→k+1)
+          // Segments: A=r[0..i-1], B=r[i..j], C=r[j+1..k], D=r[k+1..n-1]
+          const a=r[i-1], b=r[i], c=r[j], e=r[j+1], f=r[k], g=r[k+1];
+          const d0 = d(a,b) + d(c,e) + d(f,g); // current cost
+
+          // All 7 non-trivial reconnections:
+          const cases = [
+            // 2-opt moves (one segment reversed)
+            { cost: d(a,c)+d(b,e)+d(f,g), fn: () => { reverse(r,i,j); } },
+            { cost: d(a,b)+d(c,f)+d(e,g), fn: () => { reverse(r,j+1,k); } },
+            { cost: d(a,f)+d(c,e)+d(b,g), fn: () => { reverse(r,i,k); } },
+            // True 3-opt reconnections (both inner segments moved/reversed)
+            { cost: d(a,e)+d(f,b)+d(c,g), fn: () => { // B reversed, C reversed, swapped
+                const B = r.slice(i, j+1).reverse();
+                const C = r.slice(j+1, k+1).reverse();
+                r.splice(i, k-i+1, ...C, ...B);
+              }
+            },
+            { cost: d(a,e)+d(f,c)+d(b,g), fn: () => { // C then B (segments swapped)
+                const B = r.slice(i, j+1);
+                const C = r.slice(j+1, k+1);
+                r.splice(i, k-i+1, ...C, ...B);
+              }
+            },
+            { cost: d(a,c)+d(b,f)+d(e,g), fn: () => { // B reversed, then C
+                const B = r.slice(i, j+1).reverse();
+                const C = r.slice(j+1, k+1);
+                r.splice(i, k-i+1, ...B, ...C);
+              }
+            },
+            { cost: d(a,f)+d(e,b)+d(c,g), fn: () => { // C reversed, then B
+                const B = r.slice(i, j+1);
+                const C = r.slice(j+1, k+1).reverse();
+                r.splice(i, k-i+1, ...C, ...B);
+              }
+            },
+          ];
+
+          // Pick the best improving move
+          let best = null, bestCost = d0;
+          for (const c of cases) {
+            if (c.cost < bestCost - 0.01) { bestCost = c.cost; best = c; }
+          }
+          if (best) {
+            best.fn();
+            improved = true;
+            break outer;
+          }
+        }
+      }
+    }
+  }
+  return r;
+}
+
+function reverse(r, lo, hi) {
+  while (lo < hi) { [r[lo], r[hi]] = [r[hi], r[lo]]; lo++; hi--; }
 }
 
 function buildRoute(list) {
   const r = nearestNeighbour(list);
   const d0 = totalRouteDist(r);
-  twoOpt(r);
-  const d1 = totalRouteDist(r);
-  orOpt(r);
-  const d2 = totalRouteDist(r);
-  console.log(`NN: ${(d0/1000).toFixed(2)}km  2-opt: ${(d1/1000).toFixed(2)}km  or-opt: ${(d2/1000).toFixed(2)}km  (saved ${((d0-d2)/1000).toFixed(2)}km)`);
+  twoOpt(r);  const d1 = totalRouteDist(r);
+  orOpt(r);   const d2 = totalRouteDist(r);
+  threeOpt(r); const d3 = totalRouteDist(r);
+  // Run 2-opt and or-opt again after 3-opt in case it opened new improvements
+  twoOpt(r);  orOpt(r); const d4 = totalRouteDist(r);
+  console.log(
+    `NN: ${(d0/1000).toFixed(2)}km  ` +
+    `2-opt: ${(d1/1000).toFixed(2)}km  ` +
+    `or-opt: ${(d2/1000).toFixed(2)}km  ` +
+    `3-opt: ${(d3/1000).toFixed(2)}km  ` +
+    `final: ${(d4/1000).toFixed(2)}km  ` +
+    `(saved ${((d0-d4)/1000).toFixed(2)}km vs NN)`
+  );
   return r;
 }
 
@@ -686,7 +772,7 @@ function highlightStation(idx) {
   const pace = parseFloat(document.getElementById('pace').value);
   const stopSec = parseInt(document.getElementById('stop').value);
   buildList(route, pace, stopSec);
-  const legs = route.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : haversine(route[i-1], s)*1.25);
+  const legs = route.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : d(route[i-1], s));
   drawMap(route, legs);
 }
 
@@ -700,7 +786,7 @@ function render() {
 
   const list = ALL_STATIONS.slice();
   route = buildRoute(list);
-  const legs = route.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : haversine(route[i-1], s)*1.25);
+  const legs = route.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : d(route[i-1], s));
   const totalDist = legs.reduce((a,b) => a+b, 0);
   const runMin = (totalDist/1000) * pace;
   const stopMin = (route.length * stopSec) / 60;
@@ -715,15 +801,31 @@ function render() {
   buildList(route, pace, stopSec);
 }
 
+function parseStartMinutes() {
+  const val = document.getElementById('start-time').value; // "HH:MM"
+  if (!val) return 9 * 60;
+  const [h, m] = val.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function fmtTime(totalMinutes) {
+  const wrapped = ((totalMinutes % 1440) + 1440) % 1440; // handle past midnight
+  const h = Math.floor(wrapped / 60);
+  const m = Math.floor(wrapped % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
 function buildList(rt, pace, stopSec) {
-  const legs = rt.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : haversine(rt[i-1], s)*1.25);
-  let cumDist = 0, cumTime = 0;
+  const legs = rt.map((s,i) => i===0 ? 0 : COLOC.has(s.name) ? 0 : d(rt[i-1], s));
+  const startMin = parseStartMinutes();
+  let cumTime = 0;
   const frag = document.createDocumentFragment();
 
   rt.forEach((st, i) => {
-    const d = legs[i];
-    cumDist += d;
-    cumTime += (d/1000)*pace + stopSec/60;
+    const legDist = legs[i];
+    // Add travel time for this leg, then stop time (except at final station)
+    cumTime += (legDist/1000)*pace;
+    const arrivalMin = startMin + cumTime;
     const color = TYPE_COLOR[st.type];
     const isStart = st.name === 'Angel';
     const isEnd = st.name === 'Old Street';
@@ -736,10 +838,14 @@ function buildList(rt, pace, stopSec) {
       <span class="st-name">${st.name}</span>
       ${TYPE_LABEL[st.type] ? `<span class="st-badge badge-${st.type}">${TYPE_LABEL[st.type]}</span>` : ''}
       ${isStart ? '<span class="st-flag">🏁</span>' : isEnd ? '<span class="st-flag">🎯</span>' : ''}
-      <span class="st-dist">${i===0 ? '—' : COLOC.has(st.name) ? '~0m' : Math.round(d)+'m'}</span>
+      <span class="st-dist">${i===0 ? '—' : COLOC.has(st.name) ? '~0m' : Math.round(legDist)+'m'}</span>
+      <span class="st-time">${fmtTime(arrivalMin)}</span>
     `;
     div.addEventListener('click', () => highlightStation(i));
     frag.appendChild(div);
+
+    // Add stop time after arriving (but not after the last station)
+    if (i < rt.length - 1) cumTime += stopSec / 60;
   });
 
   const listEl = document.getElementById('station-list');
@@ -749,6 +855,7 @@ function buildList(rt, pace, stopSec) {
 
 document.getElementById('pace').addEventListener('input', render);
 document.getElementById('stop').addEventListener('input', render);
+document.getElementById('start-time').addEventListener('input', () => buildList(route, parseFloat(document.getElementById('pace').value), parseInt(document.getElementById('stop').value)));
 render();
 </script>
 </body>
