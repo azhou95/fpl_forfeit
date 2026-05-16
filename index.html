@@ -418,6 +418,7 @@ const ALL_STATIONS = [
   {name:"London Bridge", lat:51.5053, lng:-0.0865, type:"lu"},
   {name:"Borough", lat:51.5005, lng:-0.0940, type:"lu"},
   {name:"Elephant & Castle", lat:51.4943, lng:-0.1003, type:"lu"},
+  {name:"Kennington", lat:51.4884, lng:-0.1053, type:"lu"},
   {name:"Southwark", lat:51.5043, lng:-0.1052, type:"lu"},
   {name:"Waterloo", lat:51.5031, lng:-0.1132, type:"lu"},
   {name:"Leicester Square", lat:51.5113, lng:-0.1281, type:"lu"},
@@ -462,7 +463,75 @@ function haversine(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
 }
 const STREET_FACTOR = 1.25;
-function d(a, b) { return haversine(a, b) * STREET_FACTOR; }
+
+// ---------------------------------------------------------------------------
+// River Thames crossing detection & bridge re-routing
+// ---------------------------------------------------------------------------
+// Thames centreline as a polyline (same coords as the drawn map path, W→E).
+// We use this to detect when a leg crosses the river.
+const THAMES = [
+  {lat:51.4812,lng:-0.2050},{lat:51.4782,lng:-0.1960},{lat:51.4762,lng:-0.1870},
+  {lat:51.4755,lng:-0.1780},{lat:51.4762,lng:-0.1690},{lat:51.4800,lng:-0.1590},
+  {lat:51.4870,lng:-0.1230},{lat:51.4985,lng:-0.1245},{lat:51.5055,lng:-0.1195},
+  {lat:51.5068,lng:-0.1130},{lat:51.5079,lng:-0.1055},{lat:51.5080,lng:-0.0980},
+  {lat:51.5076,lng:-0.0915},{lat:51.5068,lng:-0.0862},{lat:51.5053,lng:-0.0795},
+  {lat:51.5042,lng:-0.0740},{lat:51.5044,lng:-0.0680},
+];
+
+// Pedestrian/running bridges inside or just outside Zone 1, W→E.
+const BRIDGES = [
+  {name:"Chelsea Bridge",       lat:51.4872, lng:-0.1568},
+  {name:"Vauxhall Bridge",      lat:51.4855, lng:-0.1231},
+  {name:"Lambeth Bridge",       lat:51.4956, lng:-0.1218},
+  {name:"Westminster Bridge",   lat:51.5007, lng:-0.1220},
+  {name:"Hungerford Bridge",    lat:51.5065, lng:-0.1133},
+  {name:"Waterloo Bridge",      lat:51.5074, lng:-0.1133},
+  {name:"Blackfriars Bridge",   lat:51.5117, lng:-0.1037},
+  {name:"Millennium Bridge",    lat:51.5099, lng:-0.0983},
+  {name:"Southwark Bridge",     lat:51.5087, lng:-0.0937},
+  {name:"London Bridge",        lat:51.5079, lng:-0.0877},
+  {name:"Tower Bridge",         lat:51.5055, lng:-0.0754},
+];
+
+// 2-D line-segment intersection test in lat/lng space.
+// Returns true if segment (p1→p2) intersects segment (p3→p4).
+function segmentsIntersect(p1, p2, p3, p4) {
+  const d1x = p2.lng - p1.lng, d1y = p2.lat - p1.lat;
+  const d2x = p4.lng - p3.lng, d2y = p4.lat - p3.lat;
+  const denom = d1x * d2y - d1y * d2x;
+  if (Math.abs(denom) < 1e-12) return false; // parallel
+  const dx = p3.lng - p1.lng, dy = p3.lat - p1.lat;
+  const t = (dx * d2y - dy * d2x) / denom;
+  const u = (dx * d1y - dy * d1x) / denom;
+  return t > 0 && t < 1 && u > 0 && u < 1;
+}
+
+// Does the straight line from a→b cross the Thames polyline?
+function crossesThames(a, b) {
+  for (let i = 0; i < THAMES.length - 1; i++) {
+    if (segmentsIntersect(a, b, THAMES[i], THAMES[i+1])) return true;
+  }
+  return false;
+}
+
+// Cost of travelling from a→b via a specific bridge.
+function viaBridge(a, bridge, b) {
+  return (haversine(a, bridge) + haversine(bridge, b)) * STREET_FACTOR;
+}
+
+// Distance function: if the leg crosses the Thames, re-route via nearest bridge.
+function d(a, b) {
+  if (!crossesThames(a, b)) return haversine(a, b) * STREET_FACTOR;
+  // Find the bridge that gives the shortest re-routed distance.
+  let best = Infinity;
+  for (const br of BRIDGES) {
+    const cost = viaBridge(a, br, b);
+    if (cost < best) best = cost;
+  }
+  return best;
+}
+
+
 
 function totalRouteDist(r) {
   let t = 0;
@@ -609,23 +678,35 @@ function reverse(r, lo, hi) {
   while (lo < hi) { [r[lo], r[hi]] = [r[hi], r[lo]]; lo++; hi--; }
 }
 
-function buildRoute(list) {
-  const r = nearestNeighbour(list);
-  const d0 = totalRouteDist(r);
-  twoOpt(r);  const d1 = totalRouteDist(r);
-  orOpt(r);   const d2 = totalRouteDist(r);
-  threeOpt(r); const d3 = totalRouteDist(r);
-  // Run 2-opt and or-opt again after 3-opt in case it opened new improvements
-  twoOpt(r);  orOpt(r); const d4 = totalRouteDist(r);
-  console.log(
-    `NN: ${(d0/1000).toFixed(2)}km  ` +
-    `2-opt: ${(d1/1000).toFixed(2)}km  ` +
-    `or-opt: ${(d2/1000).toFixed(2)}km  ` +
-    `3-opt: ${(d3/1000).toFixed(2)}km  ` +
-    `final: ${(d4/1000).toFixed(2)}km  ` +
-    `(saved ${((d0-d4)/1000).toFixed(2)}km vs NN)`
-  );
+function nnFromSeed(list, seed) {
+  const start = list.find(s => s.name === "Angel");
+  const end   = list.find(s => s.name === "Old Street");
+  const middle = list.filter(s => s.name !== "Angel" && s.name !== "Old Street");
+  let s = seed;
+  const rng = () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+  const shuffled = [...middle].sort(() => rng() - 0.5);
+  let r = [start], rem = [...shuffled], cur = start;
+  while (rem.length) {
+    let best = null, bd = Infinity;
+    for (const st of rem) { const dd = d(cur, st); if (dd < bd) { bd = dd; best = st; } }
+    r.push(best); rem.splice(rem.indexOf(best), 1); cur = best;
+  }
+  r.push(end);
   return r;
+}
+
+function optimise(r) { twoOpt(r); orOpt(r); twoOpt(r); orOpt(r); return r; }
+
+function buildRoute(list) {
+  let bestDist = Infinity, bestRoute = null;
+  const SEEDS = 500;
+  for (let s = 0; s < SEEDS; s++) {
+    const r = optimise(nnFromSeed(list, s));
+    const dist = totalRouteDist(r);
+    if (dist < bestDist) { bestDist = dist; bestRoute = [...r]; }
+  }
+  console.log(`Best across ${SEEDS} seeds: ${(bestDist/1000).toFixed(3)}km`);
+  return bestRoute;
 }
 
 
@@ -865,7 +946,11 @@ function buildList(rt, pace, stopSec) {
 document.getElementById('pace').addEventListener('input', render);
 document.getElementById('stop').addEventListener('input', render);
 document.getElementById('start-time').addEventListener('input', () => buildList(route, parseFloat(document.getElementById('pace').value), parseInt(document.getElementById('stop').value)));
-render();
+
+// Show loading state then compute on next frame so the page renders first
+document.getElementById('station-list').innerHTML =
+  `<div style="padding:2rem 1.5rem;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;">Optimising route across 500 seeds…</div>`;
+setTimeout(render, 50);
 </script>
 </body>
 </html>
